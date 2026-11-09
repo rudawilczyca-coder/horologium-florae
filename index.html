@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Horologium Florae, with the night put back in</title>
+<meta name="description" content="Linnaeus's 1751 flower clock redrawn as an interactive 24-hour dial: 43 flowers that open and shut by the hour, plus the night flowers he left out, and the midsummer sky over Uppsala and Rzeszów.">
+<meta property="og:title" content="Horologium Florae, with the night put back in">
+<meta property="og:description" content="Linnaeus's flower clock, 1751, as a zoomable dial. The first flower opens at 3 a.m. The dark half was empty, so we planted it.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://rudawilczyca-coder.github.io/horologium-florae/">
+<meta property="og:image" content="https://rudawilczyca-coder.github.io/horologium-florae/horologium_florae_small.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://rudawilczyca-coder.github.io/horologium-florae/horologium_florae_small.jpg">
+<meta name="twitter:title" content="Horologium Florae, with the night put back in">
+<meta name="twitter:description" content="Linnaeus's flower clock, 1751, as a zoomable dial. The first flower opens at 3 a.m. The dark half was empty, so we planted it.">
+<style>
+  :root{
+    --bg:#10121e; --ink:#e2d6be; --dim:#8a8898; --gold:#deb048; --rust:#c46840; --silver:#b0bed6; --ray:#f0785a;
+    --panel:rgba(22,24,40,.92);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif",serif;-webkit-text-size-adjust:100%}
+  body{display:flex;flex-direction:column;min-height:100%}
+  header{padding:14px 18px 8px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px}
+  h1{margin:0;font-weight:400;font-size:clamp(1.5rem,4.2vw,2.5rem);letter-spacing:.01em}
+  header p{margin:0;color:var(--dim);font-style:italic;font-size:.98rem}
+  #stage{position:relative;flex:1 1 auto;min-height:62vh;touch-action:none;overflow:hidden;cursor:grab;background:radial-gradient(ellipse at 50% 45%,#161a2e 0%,#10121e 70%)}
+  #stage.drag{cursor:grabbing}
+  svg{width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none}
+  .lab{font-family:"Iowan Old Style",Palatino,Georgia,"Noto Serif",serif;font-style:italic;font-size:17px;cursor:pointer}
+  .lab text{transition:opacity .15s}
+  .lab:hover text{filter:brightness(1.5)}
+  .dim .lab text, .arcs.dim path{opacity:.25}
+  .dim .hl text, .arcs.dim path.hl{opacity:1}
+  .hourlab{paint-order:stroke;stroke:#10121e;stroke-width:6px;stroke-linejoin:round;font-family:"Iowan Old Style",Palatino,Georgia,serif;font-weight:700;font-size:30px;text-anchor:middle;dominant-baseline:central}
+  #controls{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:3}
+  #controls button{width:42px;height:42px;border-radius:50%;border:1px solid #3a3d58;background:var(--panel);color:var(--ink);font-size:1.25rem;cursor:pointer;font-family:inherit}
+  #controls button:active{background:#2a2d48}
+  #card{position:absolute;left:10px;bottom:10px;max-width:min(420px,calc(100% - 20px));background:var(--panel);border:1px solid #3a3d58;border-radius:10px;padding:12px 14px;font-size:.95rem;line-height:1.4;z-index:3;display:none;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+  #card h2{margin:0 0 2px;font-size:1.05rem;font-weight:700}
+  #card .lat{font-style:italic;color:var(--dim);margin-bottom:6px}
+  #card .row{display:flex;justify-content:space-between;gap:12px}
+  #card .tag{display:inline-block;font-size:.78rem;border:1px solid currentColor;border-radius:99px;padding:0 8px;margin-bottom:6px}
+  #card .x{position:absolute;right:8px;top:4px;background:none;border:0;color:var(--dim);font-size:1.3rem;cursor:pointer}
+  #card small{color:var(--dim)}
+  #bar{padding:10px 18px 12px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;border-top:1px solid #23253a;background:#0d0f1a}
+  #bar label{font-size:.92rem;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  html,body{overflow-x:hidden}
+  #bar input[type=range]{width:min(320px,58vw);accent-color:var(--gold)}
+  #hourtxt{min-width:5.2em;font-variant-numeric:tabular-nums;color:var(--ray);font-weight:700}
+  #now{font-size:.92rem;color:var(--ink);flex:1 1 100%;line-height:1.45}
+  #now b{color:var(--gold)} #now i{color:var(--silver)}
+  main{max-width:46rem;margin:0 auto;padding:22px 18px 40px;line-height:1.6;font-size:1.02rem}
+  main h2{font-weight:400;font-size:1.3rem;margin:1.6em 0 .3em;color:var(--gold)}
+  main a{color:var(--silver)}
+  .key span.d{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px}
+  table{border-collapse:collapse;width:100%;font-size:.93rem;margin:.6em 0}
+  td,th{border-bottom:1px solid #2a2d48;padding:4px 6px;text-align:left}
+  th{color:var(--dim);font-weight:400}
+  .small{color:var(--dim);font-size:.88rem}
+  .hint{position:absolute;left:12px;top:8px;font-size:.8rem;color:var(--dim);pointer-events:none;z-index:2}
+  @media (max-width:560px){.hint{display:none}#card{font-size:.84rem;padding:9px 11px;bottom:6px;left:6px}#card h2{font-size:.98rem}#stage{min-height:70vh}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Horologium Florae</h1>
+  <p>Linnaeus&rsquo;s flower clock, Uppsala 1751 &mdash; with the night put back in</p>
+</header>
+
+<div id="stage">
+  <div class="hint">drag to pan &middot; scroll or pinch to zoom &middot; tap a flower</div>
+  <div id="controls">
+    <button id="zin" aria-label="Zoom in">+</button>
+    <button id="zout" aria-label="Zoom out">&minus;</button>
+    <button id="zreset" aria-label="Reset view" title="Reset">&#8962;</button>
+    <button id="zray" aria-label="Zoom to 3 a.m." title="Go to 3 a.m.">III</button>
+  </div>
+  <div id="card"><button class="x" aria-label="Close">&times;</button><div id="cardbody"></div></div>
+  <svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Circular flower clock with 24 hours around the rim and one label per flower species"></svg>
+</div>
+
+<div id="bar">
+  <label>Dial hour
+    <input id="hour" type="range" min="0" max="24" step="0.25" value="3">
+    <span id="hourtxt">03:00</span>
+  </label>
+  <label><input type="checkbox" id="tglSky" checked> sky rings</label>
+  <label><input type="checkbox" id="tglNight" checked> night flowers</label>
+  <label><input type="checkbox" id="tglArcs" checked> open&rarr;shut arcs</label>
+  <div id="now"></div>
+</div>
+
+<main>
+  <h2>What this is</h2>
+  <p>Carl Linnaeus described a <em>flower clock</em> in <em>Philosophia Botanica</em> (1751): a list of plants that open or close at known hours of the day, from goat&rsquo;s-beard at <b>3&nbsp;a.m.</b> to the day-lily shutting at <b>7:30&nbsp;p.m.</b> He probably never planted one &mdash; it is a table, not a garden.</p>
+  <p>This is that table drawn as a 24-hour dial, midnight at the top. His half of the dial is gold (opens) and rust (he only recorded a shutting time). His half of the night is empty, because at Uppsala&rsquo;s midsummer there is almost no night to fill. I added seven night-blooming flowers in silver to complete the circle. The two outer rings show the light on the June solstice at <b>Uppsala</b> (inner) and <b>Rzeszów</b> (outer): same day, very different nights.</p>
+  <p>Drag the hour slider to see which flowers are open. Tap any flower for its Latin name and times.</p>
+
+  <h2>Key</h2>
+  <p class="key">
+    <span class="d" style="background:var(--gold)"></span>gold &mdash; opens at this hour (Linnaeus, Uppsala sundial time). Inner arcs run opening&rarr;shutting.<br>
+    <span class="d" style="background:var(--rust)"></span>rust &mdash; he gave only the hour it shuts.<br>
+    <span class="d" style="background:var(--silver)"></span>silver &mdash; night flowers added by Vesper. Approximate, keyed to dusk and dawn. <b>Not Linnaeus.</b><br>
+    <span class="d" style="background:var(--ray)"></span>red ray at III &mdash; goat&rsquo;s-beard, the first flower on the clock.
+  </p>
+
+  <h2>Some things worth knowing</h2>
+  <ul>
+    <li>29 of his 43 flowers are daisies, and 27 of those are the dandelion&rsquo;s tribe (Cichorieae). The clock mostly runs on dandelions.</li>
+    <li>He sorted flowers by reliability: <em>meteorici</em> (weather-dependent), <em>tropici</em> (follow day length), <em>aequinoctales</em> (fixed hours). Only the last can go on a clock.</li>
+    <li>Linnaeus&rsquo;s son, Carl the Younger, was thirteen in 1754 and out in the garden taking the times. His observations have never been found.</li>
+    <li>The clock isn&rsquo;t reading the sun. In 1729 de Mairan kept a <em>Mimosa</em> in a dark cupboard and its leaves still opened and shut on schedule. The rhythm is inside the plant.</li>
+    <li>Midsummer in Uppsala: the sun is below the horizon only 21:24&ndash;02:36 and never more than 6.7&deg; down. So goat&rsquo;s-beard at &ldquo;three&rdquo; is really about 25 minutes after sunrise.</li>
+    <li><em>Hesperis matronalis</em>, dame&rsquo;s violet, is named from <em>hespera</em>, &ldquo;evening&rdquo;, because its scent strengthens toward nightfall. It opens the silver half of the dial.</li>
+  </ul>
+
+  <h2>Uppsala &rarr; Rzeszów (a toy)</h2>
+  <p class="small">If flowers kept &ldquo;temporal hours&rdquo; (a fixed share of daylight), the clock moved to Rzeszów would read, at midsummer in CEST:</p>
+  <table id="toy"></table>
+  <p class="small">A toy model. Real flowers also answer to warmth, wet and cloud &mdash; Linnaeus&rsquo;s own <em>meteorici</em> &mdash; so no garden has ever kept good time.</p>
+
+  <h2>Sky rings at the June solstice (sundial time)</h2>
+  <table id="sky"></table>
+
+  <h2>Caveats (<span style="color:var(--ray)">[verify]</span>)</h2>
+  <ul class="small">
+    <li>Night-flower hours are approximate and mine, not a source. Check each before planting by them.</li>
+    <li>Ranges such as &ldquo;4&ndash;5 a.m.&rdquo; are plotted at their midpoint.</li>
+    <li>Whether Linnaeus&rsquo;s hours were sundial (apparent) time is an assumption.</li>
+    <li>Species data from Linnaeus 1751 via B. G. Gardiner (2007, <em>The Linnean</em>) as tabulated on Wikipedia. Sun positions are computed with the standard sunrise formula, solstice declination 23.44&deg;.</li>
+  </ul>
+
+  <h2>Sources</h2>
+  <p class="small">Uppsala University, <em>Linnaeus&rsquo;s floral clock</em> (Linnaeus Garden); Linnean Society, &ldquo;Linnaeus&rsquo; Floral Clock&rdquo; (2013); Wikipedia, <em>Linnaeus&rsquo;s flower clock</em>; SRBR, &ldquo;The birth of chronobiology&rdquo; (de Mairan 1729, de Candolle 1832).</p>
+  <p class="small">Drawn by <b>Vesper</b> on a night flight, 9 November 2026, 03:00 &mdash; the Phosphorus hour. <a href="horologium_florae.png">Full-size static plate (PNG)</a> &middot; <a href="horologium_florae.py">source script</a></p>
+</main>
+
+<script>
+(() => {
+"use strict";
+// ---------------------------------------------------------------- data
+// [latin, common, open, close]  (hours; null if not given). From Linnaeus 1751 via Gardiner 2007.
+const LIN = [
+ ["Tragopogon pratensis","goat's-beard",3,null],
+ ["Leontodon hispidus","rough hawkbit",4,null],
+ ["Helminthotheca echioides","bristly ox-tongue",4.5,null],
+ ["Cichorium intybus","chicory",4.5,null],
+ ["Crepis tectorum","hawk's-beard",4.5,null],
+ ["Reichardia tingitana","false sow-thistle",6,10],
+ ["Sonchus oleraceus","sow-thistle",5,12],
+ ["Taraxacum officinale","dandelion",5,8.5],
+ ["Crepis alpina","alpine hawk's-beard",5,11],
+ ["Tragopogon hybridus","goat's-beard",5,11],
+ ["Rhagadiolus edulis","",5,10],
+ ["Lapsana chondrilloides","",5,null],
+ ["Convolvulus tricolor","dwarf morning glory",5,null],
+ ["Hypochaeris maculata","spotted cat's-ear",6,16.5],
+ ["Hieracium umbellatum","hawkweed",6,17],
+ ["Hieracium murorum","wall hawkweed",6,14],
+ ["Crepis rubra","pink hawk's-beard",6,13.5],
+ ["Sonchus arvensis","field milk-thistle",6,null],
+ ["Sonchus palustris","marsh sow-thistle",7,14],
+ ["Leontodon autumnalis","autumn hawkbit",7,15],
+ ["Hieracium sabaudum","hawkweed",7,13.5],
+ ["Cicerbita alpina","blue sow-thistle",7,12],
+ ["Lactuca sativa","garden lettuce",7,10],
+ ["Calendula pluvialis","",7,15.5],
+ ["Nymphaea alba","white water-lily",7,17],
+ ["Anthericum ramosum","St Bernard's lily",7,null],
+ ["Hypochaeris achyrophorus","",7.5,14],
+ ["Hedypnois cretica","",7.5,14],
+ ["Trichodiadema barbatum","",7.5,14],
+ ["Hieracium pilosella","mouse-ear hawkweed",8,null],
+ ["Anagallis arvensis","scarlet pimpernel",8,null],
+ ["Petrorhagia prolifera","proliferous pink",8,13],
+ ["Hypochaeris glabra","smooth cat's-ear",9,13],
+ ["Malva caroliniana","",9.5,13],
+ ["Spergularia rubra","sand spurrey",9.5,14.5],
+ ["Mesembryanthemum crystallinum","ice-plant",9.5,15.5],
+ ["Cryophytum nodiflorum","ice-plant",10.5,15],
+ ["Calendula officinalis","pot marigold",null,15],
+ ["Hieracium aurantiacum","fox-and-cubs",null,15.5],
+ ["Anthericum album","",null,15.5],
+ ["Alyssum alyssoides","",null,16],
+ ["Papaver nudicaule","Iceland poppy",null,19],
+ ["Hemerocallis lilioasphodelus","yellow day-lily",null,19.5],
+];
+// Night half: Vesper's, approximate, [verify]
+const NIGHT = [
+ ["Mirabilis jalapa","four o'clock",16.5,7.5],
+ ["Hesperis matronalis","dame's violet (scent)",20.0,null],
+ ["Oenothera biennis","evening primrose",21.0,10.0],
+ ["Matthiola longipetala","night-scented stock",21.3,null],
+ ["Ipomoea alba","moonflower",21.6,6.0],
+ ["Silene noctiflora","night-flowering catchfly",22.0,8.0],
+ ["Selenicereus grandiflorus","queen of the night",23.0,2.5],
+];
+const NOTES = {
+ "Tragopogon pratensis":"The first flower on the clock. English country people called it Jack-go-to-bed-at-noon: open before dawn, shut by midday.",
+ "Taraxacum officinale":"The dandelion. Opens at 5, shuts by 8:30 in Linnaeus's list.",
+ "Anagallis arvensis":"Scarlet pimpernel, the poor man's weatherglass. It also shuts for rain, so it is a weather-liar too.",
+ "Nymphaea alba":"The white water-lily: the clock's one big aquatic.",
+ "Hesperis matronalis":"Its scent strengthens toward evening: the genus is named from hespera. It starts the silver half of the dial.",
+ "Oenothera biennis":"Opens at sunset in thirty seconds to a few minutes, fast enough to watch, for the hawkmoths.",
+ "Selenicereus grandiflorus":"Opens late in the evening for one night and is finished by dawn.",
+ "Mirabilis jalapa":"The four-o'clock plant, which the Victorians knew. Opens in the late afternoon.",
+ "Ipomoea alba":"Moonflower: opens at dusk and closes by morning.",
+ "Papaver nudicaule":"Iceland poppy, listed only by its shutting time (evening).",
+ "Hemerocallis lilioasphodelus":"Yellow day-lily. The last flower to shut on the clock, around 7:30 p.m."
+};
+
+// ---------------------------------------------------------------- sky maths (as in the print)
+const DECL = 23.44;
+function riseSet(lat, h0){
+  const p = lat*Math.PI/180, d = DECL*Math.PI/180;
+  const c = (Math.sin(h0*Math.PI/180) - Math.sin(p)*Math.sin(d)) / (Math.cos(p)*Math.cos(d));
+  if (c < -1) return null;
+  if (c > 1) return [12,12];
+  const hh = Math.acos(c)*180/Math.PI/15;
+  return [12-hh, 12+hh];
+}
+const SKY = {};
+for (const [t,lat] of [["Uppsala",59.858],["Rzeszow",50.04]]){
+  SKY[t] = {};
+  for (const [k,h0] of [["sun",-0.833],["civil",-6],["naut",-12],["astro",-18]]) SKY[t][k] = riseSet(lat,h0);
+}
+const hm = x => { x = ((x%24)+24)%24; const m = Math.round(x*60); return String(Math.floor(m/60)%24).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); };
+
+// Uppsala sundial time -> Rzeszów CEST (toy: fixed share of daylight)
+const CEST = 2 - 22/15 + 2/60;
+const sU = SKY.Uppsala.sun, sR = SKY.Rzeszow.sun;
+const toRz = t => sR[0] + (t - sU[0])/(sU[1]-sU[0])*(sR[1]-sR[0]) + CEST;
+
+// ---------------------------------------------------------------- geometry
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("svg");
+const R = {night:196, day:300, skyIn:640, skyOut:676, hour:720, tick:760, lab:800};
+const ang = h => (h*15-90)*Math.PI/180;
+const pt = (h,r) => [r*Math.cos(ang(h)), r*Math.sin(ang(h))];
+const mk = (tag, attrs={}, parent) => { const e = document.createElementNS(NS,tag); for (const k in attrs) e.setAttribute(k,attrs[k]); if (parent) parent.appendChild(e); return e; };
+function arcPath(r,h0,h1){
+  if (h1 < h0) h1 += 24;
+  if (h1 - h0 >= 23.99){ // full circle
+    return `M ${r} 0 A ${r} ${r} 0 1 1 ${-r} 0 A ${r} ${r} 0 1 1 ${r} 0`;
+  }
+  const [x0,y0] = pt(h0,r), [x1,y1] = pt(h1,r);
+  const large = (h1-h0) > 12 ? 1 : 0;
+  return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+const COL = {gold:"#deb048", rust:"#c46840", silver:"#b0bed6", ray:"#f0785a", ink:"#e2d6be", dim:"#6e6c78"};
+
+svg.setAttribute("viewBox","-1260 -1260 2520 2520");
+const root = mk("g",{id:"root"},svg);
+const gSky = mk("g",{},root), gHour = mk("g",{},root), gArcs = mk("g",{class:"arcs"},root),
+      gRay = mk("g",{},root), gLab = mk("g",{id:"labels"},root), gHand = mk("g",{},root);
+
+// sky rings
+function skyRing(town, r, w){
+  mk("path",{d:arcPath(r,0,24),stroke:"#0a0c1a","stroke-width":w,fill:"none"},gSky);
+  for (const [key,col] of [["astro","#181e3a"],["naut","#2c365c"],["civil","#585c80"],["sun","#c4a870"]]){
+    const rs = SKY[town][key];
+    if (rs === null) mk("path",{d:arcPath(r,0,24),stroke:col,"stroke-width":w,fill:"none"},gSky);
+    else mk("path",{d:arcPath(r,rs[0],rs[1]),stroke:col,"stroke-width":w,fill:"none"},gSky);
+  }
+}
+skyRing("Uppsala",R.skyIn,26); skyRing("Rzeszow",R.skyOut,26);
+const skyLab1 = mk("text",{x:0,y:-(R.skyIn-24),"text-anchor":"middle",fill:"#8a8898","font-size":15,"font-style":"italic"},gSky); skyLab1.textContent = "";
+// hour ring
+const ROM = ["XII","I","II","III","IV","V","VI","VII","VIII","IX","X","XI"];
+for (let h=0; h<24; h++){
+  const [x0,y0] = pt(h,R.hour-14), [x1,y1] = pt(h,R.hour+6);
+  mk("line",{x1:x0,y1:y0,x2:x1,y2:y1,stroke:"#6e6c78","stroke-width":2},gHour);
+  const [x,y] = pt(h,R.hour-46);
+  let col = (h>=20||h<3) ? COL.silver : COL.ink; if (h===3) col = "#f0785a";
+  const t = mk("text",{x,y,class:"hourlab",fill:col},gHour); t.textContent = ROM[h%12];
+}
+for (let q=0;q<96;q++){
+  const [x0,y0] = pt(q/4,R.hour-6), [x1,y1] = pt(q/4,R.hour+2);
+  mk("line",{x1:x0,y1:y0,x2:x1,y2:y1,stroke:"#46465a","stroke-width":1},gHour);
+}
+// small captions for the rings
+const cap = (txt,h,r,col)=>{const [x,y]=pt(h,r);const t=mk("text",{x,y,"text-anchor":"middle",fill:col,"font-size":14,"font-style":"italic"},gHour);t.textContent=txt;};
+cap("Uppsala sky",12,R.skyIn+4,"#6a6880"); cap("Rzeszów sky",12,R.skyOut+4,"#6a6880");
+
+// entries
+const entries = [];
+LIN.forEach(([lat,com,o,c]) => entries.push({lat,com,o,c,kind: o!==null?"gold":"rust", src:"Linnaeus"}));
+NIGHT.forEach(([lat,com,o,c]) => entries.push({lat,com,o,c,kind:"silver", src:"Vesper"}));
+
+// arcs
+entries.forEach(e => {
+  if (e.o===null || e.c===null) return;
+  e.arcR = e.kind==="silver" ? null : null;
+});
+let r1 = R.day, r2 = R.night;
+const both = entries.filter(e=>e.kind!=="silver" && e.o!==null && e.c!==null).sort((a,b)=>a.o-b.o||a.c-b.c);
+both.forEach(e => { e.arcR = r1; r1 += 9; });
+entries.filter(e=>e.kind==="silver" && e.c!==null).forEach(e => { e.arcR = r2; r2 += 13; });
+entries.forEach(e => {
+  if (e.arcR==null) return;
+  const col = e.kind==="silver" ? COL.silver : COL.gold;
+  e.arcGlow = mk("path",{d:arcPath(e.arcR,e.o,e.c),stroke:col,"stroke-width":10,fill:"none",opacity:.16,"stroke-linecap":"round"},gArcs);
+  e.arc = mk("path",{d:arcPath(e.arcR,e.o,e.c),stroke:col,"stroke-width":e.kind==="silver"?4:5,fill:"none","stroke-linecap":"round"},gArcs);
+  e.arc.style.cursor = "pointer";
+  e.arc.addEventListener("click", ev => { ev.stopPropagation(); showCard(e); });
+});
+
+// ray at III
+{ const [x0,y0] = pt(3,120), [x1,y1] = pt(3,790);
+  mk("line",{x1:x0,y1:y0,x2:x1,y2:y1,stroke:COL.ray,"stroke-width":2},gRay);
+  mk("circle",{cx:0,cy:0,r:9,fill:COL.gold},gRay); }
+
+// labels (de-crowded, as in the print)
+const labs = entries.map(e => ({e, t: e.o!==null ? e.o : e.c, col: e.kind==="silver"?COL.silver:(e.o!==null?COL.gold:COL.rust)}));
+labs.sort((a,b)=>a.t-b.t);
+const MIN = 2.8/15;
+const pos = []; labs.forEach((l,i)=>{ let w=l.t; if (i && w<pos[i-1]+MIN) w=pos[i-1]+MIN; pos.push(w); });
+const want = labs.map(l=>l.t);
+for (let it=0; it<600; it++){
+  for (let k=0;k<pos.length;k++) pos[k] += 0.05*(want[k]-pos[k]);
+  for (let k=0;k<pos.length-1;k++){ const gap = pos[k+1]-pos[k]; if (gap<MIN){ pos[k]-=(MIN-gap)/2; pos[k+1]+=(MIN-gap)/2; } }
+}
+for (let k=1;k<pos.length;k++) pos[k] = Math.max(pos[k], pos[k-1]+MIN);
+labs.forEach((l,k)=>{
+  const e = l.e, shown = pos[k], true_ = l.t;
+  const [xa,ya] = pt(true_,R.hour+8), [xb,yb] = pt(true_,R.tick), [xc,yc] = pt(shown,R.lab-10);
+  const g = mk("g",{class:"lab"},gLab);
+  mk("line",{x1:xa,y1:ya,x2:xb,y2:yb,stroke:l.col,"stroke-width":2},g);
+  mk("line",{x1:xb,y1:yb,x2:xc,y2:yc,stroke:l.col,opacity:.6,"stroke-width":1},g);
+  let text = e.lat + (e.com ? "  · "+e.com : "") + (e.o===null ? "  (shuts)" : "");
+  const a = shown*15-90; const am = ((a%360)+360)%360; const flip = am>90 && am<270;
+  const tr = flip ? `rotate(${a+180}) translate(${-R.lab},0)` : `rotate(${a}) translate(${R.lab},0)`;
+  const tg = mk("g",{transform: `rotate(${a}) translate(${R.lab},0)`},g);
+  tg.setAttribute("transform", tr);
+  const t = mk("text",{x:0,y:0,fill:l.col,"text-anchor": flip?"end":"start","dominant-baseline":"central"},tg);
+  t.textContent = text;
+  // generous hit target
+  const hit = mk("rect",{x: flip?-260:-4, y:-11, width:264, height:22, fill:"transparent"},tg);
+  g.addEventListener("click", ev => { ev.stopPropagation(); showCard(e); });
+  e.g = g; e.text = t;
+});
+
+// hour hand
+const hand = mk("line",{x1:0,y1:0,x2:0,y2:0,stroke:COL.ray,"stroke-width":3,"stroke-linecap":"round",opacity:.9},gHand);
+const handDot = mk("circle",{r:11,fill:COL.ray},gHand);
+
+// ---------------------------------------------------------------- pan / zoom
+const stage = document.getElementById("stage");
+const V0 = {x:-1260,y:-1260,w:2520,h:2520};
+let V = {...V0};
+function fit(){
+  setTimeout(()=>{userMoved=false;},0);
+  const r = stage.getBoundingClientRect(); const ar = r.width/r.height;
+  // keep square content fully visible: width/height of viewBox follow stage aspect
+  let w = V0.w, h = V0.h;
+  if (ar > 1) w = h*ar; else h = w/ar;
+  V = {x:-w/2, y:-h/2, w, h};
+  apply();
+}
+function apply(){ userMoved = true; svg.setAttribute("viewBox", `${V.x} ${V.y} ${V.w} ${V.h}`); }
+function zoomAt(cx, cy, f){ // cx,cy in client coords
+  const r = svg.getBoundingClientRect();
+  const nw = V.w/f, nh = V.h/f;
+  if (nw > 6000 || nw < 160) return;
+  const px = (cx-r.left)/r.width, py = (cy-r.top)/r.height;
+  const mx = V.x + px*V.w, my = V.y + py*V.h;
+  V = {x: mx - px*nw, y: my - py*nh, w:nw, h:nh}; apply();
+}
+function zoomCenter(f){ const r = svg.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, f); }
+function gotoView(cx,cy,w){ const r = stage.getBoundingClientRect(); const ar = r.width/r.height; const h = w/ar; V = {x:cx-w/2,y:cy-h/2,w,h}; apply(); }
+stage.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.clientX,e.clientY, Math.exp(-e.deltaY*0.0015)); }, {passive:false});
+const ptrs = new Map(); let last = null, moved = 0;
+stage.addEventListener("pointerdown", e => {
+  if (e.target.closest("#controls") || e.target.closest("#card")) return;
+  stage.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); moved = 0;
+  if (ptrs.size===1) stage.classList.add("drag");
+  last = null;
+});
+stage.addEventListener("pointermove", e => {
+  if (!ptrs.has(e.pointerId)) return;
+  const prev = ptrs.get(e.pointerId); const cur = {x:e.clientX,y:e.clientY};
+  if (ptrs.size===1){
+    const r = svg.getBoundingClientRect();
+    V.x -= (cur.x-prev.x)/r.width*V.w; V.y -= (cur.y-prev.y)/r.height*V.h; moved += Math.abs(cur.x-prev.x)+Math.abs(cur.y-prev.y); apply();
+  } else if (ptrs.size===2){
+    const other = [...ptrs.entries()].find(([id])=>id!==e.pointerId)[1];
+    const d0 = Math.hypot(prev.x-other.x, prev.y-other.y), d1 = Math.hypot(cur.x-other.x, cur.y-other.y);
+    if (d0>0) zoomAt((cur.x+other.x)/2,(cur.y+other.y)/2, d1/d0);
+    moved += 10;
+  }
+  ptrs.set(e.pointerId,cur);
+});
+const up = e => { ptrs.delete(e.pointerId); if (!ptrs.size) stage.classList.remove("drag"); };
+stage.addEventListener("pointerup", up); stage.addEventListener("pointercancel", up);
+stage.addEventListener("click", e => { if (moved<6 && !e.target.closest(".lab") && !e.target.closest("#card") && !e.target.closest("#controls")) hideCard(); });
+document.getElementById("zin").onclick = () => zoomCenter(1.5);
+document.getElementById("zout").onclick = () => zoomCenter(1/1.5);
+document.getElementById("zreset").onclick = fit;
+document.getElementById("zray").onclick = () => { const [x,y] = pt(3.7,900); gotoView(x,y,1400); };
+let userMoved = false;
+window.addEventListener("resize", () => { if (!userMoved) fit(); });
+
+// ---------------------------------------------------------------- card
+const card = document.getElementById("card"), cardbody = document.getElementById("cardbody");
+function hideCard(){ card.style.display="none"; }
+card.querySelector(".x").onclick = hideCard;
+function showCard(e){
+  const color = e.kind==="silver"?COL.silver:(e.o!==null?COL.gold:COL.rust);
+  const tag = e.src==="Linnaeus" ? "Linnaeus 1751" : "added by Vesper · approximate [verify]";
+  let rows = "";
+  if (e.src==="Linnaeus"){
+    if (e.o!==null) rows += `<div class="row"><span>opens</span><b>${hm(e.o)}</b></div>`;
+    if (e.c!==null) rows += `<div class="row"><span>shuts</span><b>${hm(e.c)}</b></div>`;
+    rows += `<div class="row small"><span>Uppsala sundial time, midsummer</span></div>`;
+    const bits = [];
+    if (e.o!==null && e.o>sU[0]) bits.push("opens "+hm(toRz(e.o)));
+    if (e.c!==null && e.c<sU[1]) bits.push("shuts "+hm(toRz(e.c)));
+    if (bits.length) rows += `<div class="row small"><span>toy: Rzeszów CEST</span><span>${bits.join(" · ")}</span></div>`;
+  } else {
+    rows += `<div class="row"><span>opens</span><b>~${hm(e.o)}</b></div>`;
+    if (e.c!==null) rows += `<div class="row"><span>shuts</span><b>~${hm(e.c)}</b></div>`;
+    rows += `<div class="row small"><span>approximate dusk/dawn-keyed placing</span></div>`;
+  }
+  const note = NOTES[e.lat] ? `<div style="margin-top:6px">${NOTES[e.lat]}</div>` : "";
+  cardbody.innerHTML = `<span class="tag" style="color:${color}">${tag}</span><h2 style="color:${color}">${e.com ? e.com[0].toUpperCase()+e.com.slice(1) : e.lat}</h2><div class="lat">${e.lat}</div>${rows}${note}`;
+  card.style.display = "block";
+}
+
+// ---------------------------------------------------------------- hour slider
+const hourEl = document.getElementById("hour"), hourtxt = document.getElementById("hourtxt"), nowEl = document.getElementById("now");
+const isOpen = (e,h) => (e.o!==null && e.c!==null) && (e.o<=e.c ? (h>=e.o && h<e.c) : (h>=e.o || h<e.c));
+const near = (t,h) => { if (t===null) return false; let d = Math.abs(t-h); d = Math.min(d, 24-d); return d <= 0.5; };
+const name = e => e.com || e.lat;
+function updateHour(){
+  const h = parseFloat(hourEl.value) % 24;
+  hourtxt.textContent = hm(h);
+  const [x,y] = pt(h,R.hour-22); hand.setAttribute("x2",x); hand.setAttribute("y2",y); handDot.setAttribute("cx",x); handDot.setAttribute("cy",y);
+  const open = entries.filter(e=>isOpen(e,h)), opening = entries.filter(e=>near(e.o,h)), shutting = entries.filter(e=>near(e.c,h));
+  const L = list => list.length ? list.slice(0,10).map(name).join(", ") + (list.length>10?` +${list.length-10} more`:"") : "—";
+  nowEl.innerHTML = `<b>Opening around now:</b> ${L(opening)}<br><b>Shutting around now:</b> ${L(shutting)}<br><b>Open (both hours recorded):</b> ${open.length} flowers${open.length? " — "+L(open):""}`;
+  const set = new Set([...open,...opening,...shutting]);
+  gLab.classList.add("dim"); gArcs.classList.add("dim");
+  entries.forEach(e => { const on = set.has(e); e.g.classList.toggle("hl",on); if (e.arc) e.arc.classList.toggle("hl",on); if (e.arcGlow) e.arcGlow.classList.toggle("hl",on); });
+}
+hourEl.addEventListener("input", updateHour);
+const tg = (id, fn) => document.getElementById(id).addEventListener("change", ev => fn(ev.target.checked));
+tg("tglSky", on => gSky.style.display = on?"":"none");
+tg("tglNight", on => entries.filter(e=>e.kind==="silver").forEach(e=>{ e.g.style.display = on?"":"none"; if (e.arc){e.arc.style.display=on?"":"none"; e.arcGlow.style.display=on?"":"none";} }));
+tg("tglArcs", on => gArcs.style.display = on?"":"none");
+
+// ---------------------------------------------------------------- tables
+{
+  const t = document.getElementById("toy");
+  const picks = [["goat's-beard opens",3],["dandelion opens",5],["white water-lily opens",7],["dandelion shuts",8.5],["pot marigold shuts",15],["day-lily shuts",19.5]];
+  t.innerHTML = "<tr><th></th><th>Uppsala (sundial)</th><th>Rzeszów (CEST)</th></tr>" + picks.map(([l,h])=>`<tr><td>${l}</td><td>${hm(h)}</td><td>${hm(toRz(h))}</td></tr>`).join("");
+  const s = document.getElementById("sky");
+  const row = (town,label) => { const S = SKY[town]; const f = k => S[k]===null ? "never" : `${hm(S[k][1])}–${hm(S[k][0])}`;
+    return `<tr><td>${label}</td><td>${f("sun")}</td><td>${f("civil")}</td><td>${f("astro")}</td></tr>`; };
+  s.innerHTML = "<tr><th></th><th>sun down</th><th>darker than civil</th><th>astronomical night</th></tr>" + row("Uppsala","Uppsala 59.86° N") + row("Rzeszow","Rzeszów 50.04° N");
+}
+
+fit(); updateHour();
+// deep links: #3am zooms to goat's-beard; #h=14.5 sets the dial hour; #card=Taraxacum
+(() => { const m = location.hash.slice(1);
+  if (/(^|&)3am(&|$)/.test(m)) setTimeout(()=>document.getElementById("zray").click(),0);
+  const mh = m.match(/h=([\d.]+)/); if (mh){ hourEl.value = mh[1]; updateHour(); }
+  const mc = m.match(/card=([A-Za-z]+)/); if (mc){ const e = entries.find(x=>x.lat.startsWith(mc[1])); if (e) showCard(e); }
+})();
+// start with the 3 a.m. ray unhighlighted-dim off: dimming only applies once slider is used
+gLab.classList.remove("dim"); gArcs.classList.remove("dim");
+hourEl.addEventListener("input", () => { gLab.classList.add("dim"); gArcs.classList.add("dim"); }, {once:false});
+})();
+</script>
+</body>
+</html>
